@@ -56,7 +56,7 @@ function CtrlButton({ icon, onPress, disabled }: { icon: string; onPress: () => 
 
 export default function ChaptersScreen() {
   const insets = useSafeAreaInsets();
-  const { state, updateLectures, toggleChapterComplete } = usePlanner();
+  const { state, updateLectures, updateChapterTotalLectures, toggleChapterComplete } = usePlanner();
   const [activeSubject, setActiveSubject] = useState<SubjectKey>('physics');
 
   const topPad = isWeb ? Math.max(insets.top, 67) : insets.top;
@@ -194,15 +194,13 @@ export default function ChaptersScreen() {
                   style={{ marginBottom: 12 }}
                 />
 
-                {/* Counter controls */}
+                {/* Watched lectures controls */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <CtrlButton
                     icon="minus"
                     disabled={st.lecturesWatched <= 0}
                     onPress={() => updateLectures(chapter.id, st.lecturesWatched - 1)}
                   />
-
-                  {/* Lecture count display */}
                   <Well3D style={{ flex: 1, padding: 6 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Text style={[TYPE.h3, { color: isDone ? COLORS.success : t.color }]}>
@@ -211,10 +209,38 @@ export default function ChaptersScreen() {
                       <Text style={[TYPE.sm, { color: COLORS.textMuted }]}>/ {st.totalLectures}</Text>
                     </View>
                   </Well3D>
-
                   <CtrlButton
                     icon="plus"
                     onPress={() => updateLectures(chapter.id, st.lecturesWatched + 1)}
+                  />
+                </View>
+
+                {/* Syllabus editor — adjust total lectures */}
+                <View style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 10,
+                  marginTop: 8, paddingTop: 8,
+                  borderTopWidth: 1, borderTopColor: COLORS.borderSubtle,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
+                    <Feather name="edit-2" size={11} color={COLORS.textDim} />
+                    <Text style={[TYPE.xs, { color: COLORS.textDim }]}>Syllabus lectures</Text>
+                  </View>
+                  <CtrlButton
+                    icon="minus"
+                    disabled={st.totalLectures <= 1}
+                    onPress={() => updateChapterTotalLectures(chapter.id, st.totalLectures - 1)}
+                  />
+                  <View style={{
+                    minWidth: 46, paddingHorizontal: 10, paddingVertical: 5,
+                    borderRadius: RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: COLORS.borderSubtle,
+                    alignItems: 'center',
+                  }}>
+                    <Text style={[TYPE.smBold, { color: COLORS.textSecondary }]}>{st.totalLectures}</Text>
+                  </View>
+                  <CtrlButton
+                    icon="plus"
+                    onPress={() => updateChapterTotalLectures(chapter.id, st.totalLectures + 1)}
                   />
                 </View>
               </View>

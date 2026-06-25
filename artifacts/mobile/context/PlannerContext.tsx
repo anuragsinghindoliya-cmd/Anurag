@@ -67,6 +67,7 @@ interface PlannerContextValue {
   getSubjectProgress: (key: SubjectKey) => { totalLectures: number; doneLectures: number; totalChapters: number; doneChapters: number; pct: number };
   getOverallProgress: () => { total: number; done: number; totalCh: number; doneCh: number; pct: number };
   updateLectures: (chapterId: string, watched: number) => void;
+  updateChapterTotalLectures: (chapterId: string, total: number) => void;
   toggleChapterComplete: (chapterId: string) => void;
   updateTask: (blockId: string, date: string, updates: Partial<DayTaskStatus>) => void;
   getTask: (blockId: string, date: string) => DayTaskStatus;
@@ -133,10 +134,37 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
   const updateLectures = useCallback((chapterId: string, watched: number) => {
     setState(prev => {
       const ch = { ...prev.chapters[chapterId] };
+      const prevWatched = ch.lecturesWatched;
       ch.lecturesWatched = Math.max(0, watched);
       ch.completed = ch.lecturesWatched >= ch.totalLectures;
       if (ch.completed && !ch.completedAt) ch.completedAt = new Date().toISOString();
       if (!ch.startedAt && ch.lecturesWatched > 0) ch.startedAt = new Date().toISOString();
+
+      // Streak: fire when at least 1 lecture is completed today
+      let { streak, lastStudyDate } = prev;
+      if (ch.lecturesWatched > 0 && ch.lecturesWatched > prevWatched) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (lastStudyDate !== todayStr) {
+          const last = lastStudyDate ? new Date(lastStudyDate) : null;
+          const curr = new Date(todayStr);
+          if (last) {
+            const diff = Math.round((curr.getTime() - last.getTime()) / 86400000);
+            streak = diff === 1 ? streak + 1 : 1;
+          } else { streak = 1; }
+          lastStudyDate = todayStr;
+        }
+      }
+
+      return { ...prev, chapters: { ...prev.chapters, [chapterId]: ch }, streak, lastStudyDate };
+    });
+  }, [setState]);
+
+  const updateChapterTotalLectures = useCallback((chapterId: string, total: number) => {
+    setState(prev => {
+      const ch = { ...prev.chapters[chapterId] };
+      ch.totalLectures = Math.max(1, total);
+      ch.completed = ch.lecturesWatched >= ch.totalLectures;
+      if (!ch.completed) ch.completedAt = undefined;
       return { ...prev, chapters: { ...prev.chapters, [chapterId]: ch } };
     });
   }, [setState]);
@@ -211,7 +239,7 @@ export function PlannerProvider({ children }: { children: React.ReactNode }) {
     <PlannerContext.Provider value={{
       state, loaded, schedule,
       getSubjectProgress, getOverallProgress,
-      updateLectures, toggleChapterComplete,
+      updateLectures, updateChapterTotalLectures, toggleChapterComplete,
       updateTask, getTask,
       getDaySchedule, getWeekSchedule,
       addTest, deleteTest, updateChapterNotes,

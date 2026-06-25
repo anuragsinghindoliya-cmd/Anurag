@@ -161,14 +161,17 @@ export function generateSchedule(): DaySchedule[] {
             lecturesPlanned: phase === 1 ? 1 : (isHybrid ? 1 : 2),
             timeSlot: 'Block 1: 6:00 AM – 8:00 AM',
           });
-          blocks.push({
-            id: `${dateStr}-lang`,
-            label: isEnglish ? 'English' : 'Hindi',
-            subject: isEnglish ? 'english' : 'hindi',
-            blockType: 'language',
-            lecturesPlanned: 1,
-            timeSlot: 'Block 2: 12:00 PM – 12:45 PM',
-          });
+          // Language blocks only in Phase 2
+          if (phase === 2) {
+            blocks.push({
+              id: `${dateStr}-lang`,
+              label: isEnglish ? 'English' : 'Hindi',
+              subject: isEnglish ? 'english' : 'hindi',
+              blockType: 'language',
+              lecturesPlanned: 1,
+              timeSlot: 'Block 2: 12:00 PM – 12:45 PM',
+            });
+          }
         }
 
         schedule.push({
