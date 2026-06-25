@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   const botPad  = isWeb ? 34 + 84 : 60 + insets.bottom;
 
   const endDate = new Date(PLAN_START_DATE);
-  endDate.setDate(endDate.getDate() + (PHASE1_WEEKS + PHASE2_WEEKS) * 7);
+  endDate.setDate(endDate.getDate() + (PHASE1_WEEKS + PHASE2_WEEKS) * 7 + 1);
 
   const handleReset = () => {
     if (Platform.OS === 'web') {

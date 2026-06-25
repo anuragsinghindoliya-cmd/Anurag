@@ -88,7 +88,7 @@ export const SUBJECTS: Subject[] = [
 
 export const PHASE1_WEEKS = 3;
 export const PHASE2_WEEKS = 21;
-export const PLAN_START_DATE = new Date('2025-07-21');
+export const PLAN_START_DATE = new Date('2026-06-21');
 
 export interface DaySchedule {
   date: string;
