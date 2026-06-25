@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
@@ -15,19 +14,26 @@ import {
   SUBJECT_THEME, isWeb,
 } from '@/constants/theme';
 import type { SubjectColorKey } from '@/constants/theme';
+import type { SubjectKey } from '@/data/plannerData';
 
 function formatDate(d: Date) { return d.toISOString().split('T')[0]; }
 
 const STATUS_CONFIG = {
-  pending:  { icon: 'circle'   as const, color: COLORS.textDim,   bg: 'rgba(255,255,255,0.04)' },
-  done:     { icon: 'check'    as const, color: COLORS.success,   bg: COLORS.success + '18'   },
-  'not-done': { icon: 'x'     as const, color: COLORS.error,     bg: COLORS.error   + '18'   },
-  partial:  { icon: 'minus'    as const, color: COLORS.warning,   bg: COLORS.warning + '18'   },
+  pending:    { icon: 'circle'  as const, color: COLORS.textDim,  bg: 'rgba(255,255,255,0.04)' },
+  done:       { icon: 'check'   as const, color: COLORS.success,  bg: COLORS.success + '18'    },
+  'not-done': { icon: 'x'      as const, color: COLORS.error,    bg: COLORS.error   + '18'    },
+  partial:    { icon: 'minus'   as const, color: COLORS.warning,  bg: COLORS.warning + '18'    },
 };
 
 const STATUS_CYCLE: Record<string, 'done' | 'not-done' | 'pending'> = {
   pending: 'done', done: 'not-done', 'not-done': 'pending', partial: 'done',
 };
+
+const PRIMARY_SUBJECTS: { key: SubjectKey; label: string; color: string }[] = [
+  { key: 'physics',   label: 'Physics',   color: COLORS.physics   },
+  { key: 'chemistry', label: 'Chemistry', color: COLORS.chemistry },
+  { key: 'math',      label: 'Math',      color: COLORS.math      },
+];
 
 export default function TimetableScreen() {
   const insets = useSafeAreaInsets();
@@ -37,6 +43,8 @@ export default function TimetableScreen() {
   const currentWeek = useMemo(() => schedule.find(d => d.date === todayStr)?.week ?? 1, [schedule, todayStr]);
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
   const weekDays = useMemo(() => schedule.filter(d => d.week === selectedWeek), [schedule, selectedWeek]);
+
+  const [openSwapKey, setOpenSwapKey] = useState<string | null>(null);
 
   const topPad = isWeb ? Math.max(insets.top, 67) : insets.top;
   const botPad = isWeb ? 34 + 84 : 60 + insets.bottom;
@@ -79,7 +87,6 @@ export default function TimetableScreen() {
             size={36}
           />
           <View style={{ flex: 1 }}>
-            {/* Progress bar for week completion */}
             <LinearGradient
               colors={GRADIENTS.trackBg}
               style={{ height: 4, borderRadius: 2, overflow: 'hidden' }}
@@ -105,7 +112,7 @@ export default function TimetableScreen() {
         showsVerticalScrollIndicator={false}
       >
         {weekDays.map(day => {
-          const isToday = day.date === todayStr;
+          const isToday  = day.date === todayStr;
           const isSunday = day.dayType === 'SUNDAY';
           const glowColor = isToday ? COLORS.mathGlow : undefined;
 
@@ -157,12 +164,18 @@ export default function TimetableScreen() {
                 </View>
               ) : (
                 day.blocks.map((block, bi) => {
-                  const task = getTask(block.id, day.date);
-                  const st = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
-                  const t  = SUBJECT_THEME[block.subject as SubjectColorKey];
+                  const task        = getTask(block.id, day.date);
+                  const st          = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
+                  const isPrimary   = block.blockType !== 'language';
+                  const activeSubj  = (isPrimary && task.subjectOverride) ? task.subjectOverride : block.subject;
+                  const t           = SUBJECT_THEME[activeSubj as SubjectColorKey];
+                  const swapKey     = `${day.date}-${block.id}`;
+                  const swapOpen    = openSwapKey === swapKey;
+                  const isOverridden = isPrimary && !!task.subjectOverride && task.subjectOverride !== block.subject;
 
                   return (
                     <View key={block.id}>
+                      {/* ── Block row ── */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
                         <LinearGradient
                           colors={[t.color, t.dim]}
@@ -171,29 +184,113 @@ export default function TimetableScreen() {
                           style={{ width: 3, height: 44, borderRadius: 2 }}
                         />
                         <View style={{ flex: 1 }}>
-                          <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary }]}>{block.label}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary }]}>
+                              {isPrimary && task.subjectOverride
+                                ? (PRIMARY_SUBJECTS.find(s => s.key === task.subjectOverride)?.label ?? block.label)
+                                : block.label}
+                            </Text>
+                            {isOverridden && (
+                              <View style={{
+                                backgroundColor: COLORS.warning + '22',
+                                borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1,
+                                borderWidth: 1, borderColor: COLORS.warning + '44',
+                              }}>
+                                <Text style={[TYPE.xs, { color: COLORS.warning }]}>was {block.label}</Text>
+                              </View>
+                            )}
+                          </View>
                           <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 2 }]}>{block.timeSlot}</Text>
                           <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 1 }]}>
                             {block.lecturesPlanned} lec · {block.blockType}
                           </Text>
                         </View>
-                        {/* Status toggle button */}
-                        <TouchableOpacity
-                          onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                            updateTask(block.id, day.date, { status: STATUS_CYCLE[task.status] });
-                          }}
-                          style={{
-                            width: 34, height: 34, borderRadius: 10,
-                            backgroundColor: st.bg,
-                            alignItems: 'center', justifyContent: 'center',
-                            borderWidth: 1, borderColor: st.color + '50',
-                            ...(isWeb ? { boxShadow: `0 0 10px ${st.color}40` } : {}) as object,
-                          }}
-                        >
-                          <Feather name={st.icon} size={15} color={st.color} />
-                        </TouchableOpacity>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          {/* Swap icon — only for primary (non-language) blocks */}
+                          {isPrimary && (
+                            <TouchableOpacity
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                setOpenSwapKey(swapOpen ? null : swapKey);
+                              }}
+                              style={{
+                                width: 32, height: 32, borderRadius: 8,
+                                backgroundColor: swapOpen ? COLORS.math + '28' : 'rgba(255,255,255,0.05)',
+                                alignItems: 'center', justifyContent: 'center',
+                                borderWidth: 1, borderColor: swapOpen ? COLORS.math + '60' : COLORS.borderSubtle,
+                              }}
+                            >
+                              <Feather name="repeat" size={13} color={swapOpen ? COLORS.math : COLORS.textDim} />
+                            </TouchableOpacity>
+                          )}
+
+                          {/* Status toggle */}
+                          <TouchableOpacity
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                              updateTask(block.id, day.date, { status: STATUS_CYCLE[task.status] });
+                            }}
+                            style={{
+                              width: 34, height: 34, borderRadius: 10,
+                              backgroundColor: st.bg,
+                              alignItems: 'center', justifyContent: 'center',
+                              borderWidth: 1, borderColor: st.color + '50',
+                              ...(isWeb ? { boxShadow: `0 0 10px ${st.color}40` } : {}) as object,
+                            }}
+                          >
+                            <Feather name={st.icon} size={15} color={st.color} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
+
+                      {/* ── Subject picker (shown when swap is open) ── */}
+                      {swapOpen && (
+                        <View style={{
+                          marginHorizontal: 16,
+                          marginBottom: 12,
+                          padding: 10,
+                          borderRadius: RADIUS.md,
+                          backgroundColor: 'rgba(255,255,255,0.04)',
+                          borderWidth: 1,
+                          borderColor: COLORS.borderSubtle,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}>
+                          <Feather name="repeat" size={12} color={COLORS.textDim} style={{ marginRight: 2 }} />
+                          <Text style={[TYPE.xs, { color: COLORS.textDim, marginRight: 4 }]}>Study instead:</Text>
+                          {PRIMARY_SUBJECTS.map(s => {
+                            const isActive = activeSubj === s.key;
+                            return (
+                              <TouchableOpacity
+                                key={s.key}
+                                onPress={() => {
+                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                  const newOverride = s.key === block.subject ? undefined : s.key;
+                                  updateTask(block.id, day.date, { subjectOverride: newOverride });
+                                  setOpenSwapKey(null);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  paddingVertical: 7,
+                                  borderRadius: RADIUS.sm,
+                                  alignItems: 'center',
+                                  backgroundColor: isActive ? s.color + '28' : 'rgba(255,255,255,0.06)',
+                                  borderWidth: 1,
+                                  borderColor: isActive ? s.color + '80' : 'rgba(255,255,255,0.08)',
+                                  ...(isWeb && isActive ? { boxShadow: `0 0 8px ${s.color}50` } : {}) as object,
+                                }}
+                              >
+                                <Text style={[TYPE.sm, { color: isActive ? s.color : COLORS.textSecondary, fontWeight: isActive ? '700' : '400' }]}>
+                                  {s.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
+
                       {bi < day.blocks.length - 1 && <Divider3D style={{ marginHorizontal: 16 }} />}
                     </View>
                   );

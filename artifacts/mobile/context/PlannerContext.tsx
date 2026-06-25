@@ -30,6 +30,7 @@ export interface DayTaskStatus {
   lecturesDone: number;
   extraLectures: number;
   notes: string;
+  subjectOverride?: SubjectKey;
 }
 
 export interface PlannerState {
