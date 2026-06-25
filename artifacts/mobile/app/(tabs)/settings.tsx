@@ -1,165 +1,208 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import React from 'react';
+import { Alert, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
+import { Card3D, Divider3D, Well3D } from '@/components/ui/Card3D';
+import { Button3D } from '@/components/ui/Button3D';
+import { MetricWidget } from '@/components/ui/MetricWidget';
 import { usePlanner } from '@/context/PlannerContext';
 import { PLAN_START_DATE, PHASE1_WEEKS, PHASE2_WEEKS } from '@/data/plannerData';
-import { useColors } from '@/hooks/useColors';
+import {
+  COLORS, GRADIENTS, RADIUS, SHADOWS, BOX_SHADOW,
+  TYPE, LIGHT, isWeb,
+} from '@/constants/theme';
+
+function InfoRow({ label, value, icon }: { label: string; value: string; icon?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 }}>
+      {icon && (
+        <View style={{
+          width: 32, height: 32, borderRadius: RADIUS.sm, backgroundColor: COLORS.math + '18',
+          alignItems: 'center', justifyContent: 'center',
+          borderWidth: 1, borderColor: COLORS.math + '30',
+        }}>
+          <Feather name={icon as any} size={14} color={COLORS.math} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={[TYPE.sm, { color: COLORS.textMuted }]}>{label}</Text>
+        <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary, marginTop: 2 }]}>{value}</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { state, resetAll, getOverallProgress } = usePlanner();
 
   const overall = getOverallProgress();
-  const topPadding = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
-  const bottomPadding = Platform.OS === 'web' ? 34 + 84 : 60 + insets.bottom;
+  const topPad  = isWeb ? Math.max(insets.top, 67) : insets.top;
+  const botPad  = isWeb ? 34 + 84 : 60 + insets.bottom;
 
   const endDate = new Date(PLAN_START_DATE);
   endDate.setDate(endDate.getDate() + (PHASE1_WEEKS + PHASE2_WEEKS) * 7);
 
   const handleReset = () => {
     if (Platform.OS === 'web') {
-      if (window.confirm('Reset all progress? This cannot be undone.')) {
+      if (window.confirm('Reset ALL progress? This permanently clears all lectures, tasks, and streak data.')) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         resetAll();
       }
     } else {
       Alert.alert(
         'Reset All Progress',
-        'This will permanently delete all lecture tracking, task statuses, and streak data. This cannot be undone.',
+        'This permanently clears all lecture tracking, task statuses, and your streak. This cannot be undone.',
         [
           { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reset Everything',
-            style: 'destructive',
-            onPress: () => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              resetAll();
-            },
-          },
+          { text: 'Reset Everything', style: 'destructive', onPress: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); resetAll(); } },
         ]
       );
     }
   };
 
-  const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      paddingTop: topPadding + 12, paddingHorizontal: 18, paddingBottom: 14,
-      backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border,
-    },
-    headerTitle: { fontSize: 22, fontWeight: '700' as const, color: colors.foreground, fontFamily: 'Inter_700Bold' },
-    scroll: { flex: 1 },
-    content: { padding: 14, paddingBottom: bottomPadding + 14 },
-    card: { backgroundColor: colors.card, borderRadius: colors.radius, marginBottom: 14, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-    sectionLabel: { fontSize: 11, fontWeight: '600' as const, color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 8, fontFamily: 'Inter_600SemiBold' },
-    row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
-    rowLast: { borderBottomWidth: 0 },
-    rowLeft: { flex: 1 },
-    rowLabel: { fontSize: 14, color: colors.foreground, fontFamily: 'Inter_500Medium' },
-    rowValue: { fontSize: 13, color: colors.mutedForeground, fontFamily: 'Inter_400Regular', marginTop: 2 },
-    rowIcon: { marginLeft: 8 },
-    statCard: { padding: 18 },
-    statGrid: { flexDirection: 'row', gap: 10, marginTop: 4 },
-    statBox: { flex: 1, backgroundColor: colors.secondary, borderRadius: 10, padding: 12 },
-    statVal: { fontSize: 20, fontWeight: '700' as const, color: colors.foreground, fontFamily: 'Inter_700Bold' },
-    statLbl: { fontSize: 11, color: colors.mutedForeground, marginTop: 2, fontFamily: 'Inter_400Regular' },
-    dangerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: colors.radius, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)', marginTop: 4 },
-    dangerText: { fontSize: 14, fontWeight: '600' as const, color: '#ef4444', fontFamily: 'Inter_600SemiBold' },
-    aboutText: { fontSize: 13, color: colors.mutedForeground, fontFamily: 'Inter_400Regular', lineHeight: 20 },
-    badgeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 },
-    badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    badgeText: { fontSize: 11, fontWeight: '600' as const, fontFamily: 'Inter_600SemiBold' },
-  });
-
   return (
-    <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.headerTitle}>Settings</Text>
-      </View>
+    <View style={{ flex: 1, backgroundColor: COLORS.void }}>
+      {/* ── Header ── */}
+      <LinearGradient
+        colors={GRADIENTS.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: topPad + 12,
+          paddingHorizontal: 16,
+          paddingBottom: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.borderSubtle,
+          ...(isWeb ? { boxShadow: BOX_SHADOW.sm } : SHADOWS.sm) as object,
+        }}
+      >
+        <Text style={[TYPE.h2, { color: COLORS.textPrimary }]}>Settings</Text>
+        <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 2 }]}>
+          Anurag's Academic Command Center
+        </Text>
+      </LinearGradient>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {/* Stats */}
-        <Text style={s.sectionLabel}>Stats</Text>
-        <View style={s.card}>
-          <View style={s.statCard}>
-            <View style={s.statGrid}>
-              <View style={s.statBox}>
-                <Text style={[s.statVal, { color: '#FFB400' }]}>{state.streak}</Text>
-                <Text style={s.statLbl}>Day streak</Text>
-              </View>
-              <View style={s.statBox}>
-                <Text style={[s.statVal, { color: colors.primary }]}>{overall.pct}%</Text>
-                <Text style={s.statLbl}>Done</Text>
-              </View>
-              <View style={s.statBox}>
-                <Text style={s.statVal}>{overall.doneCh}</Text>
-                <Text style={s.statLbl}>Chapters</Text>
-              </View>
-            </View>
-          </View>
+      <ScrollView
+        contentContainerStyle={{ padding: 14, paddingBottom: botPad + 14 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Stats Panel ── */}
+        <Text style={[TYPE.label, { color: COLORS.textMuted, marginBottom: 10 }]}>Your Stats</Text>
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          <MetricWidget
+            value={state.streak}
+            label="Day Streak"
+            color={COLORS.warning}
+            glowColor={COLORS.warningGlow}
+            icon={<Feather name="zap" size={16} color={COLORS.warning} />}
+            size="md"
+          />
+          <MetricWidget
+            value={`${overall.pct}%`}
+            label="Complete"
+            color={COLORS.math}
+            glowColor={COLORS.mathGlow}
+            size="md"
+          />
+          <MetricWidget
+            value={overall.doneCh}
+            label="Chapters"
+            color={COLORS.success}
+            glowColor={COLORS.successGlow}
+            size="md"
+          />
         </View>
 
-        {/* Plan Info */}
-        <Text style={s.sectionLabel}>Plan Details</Text>
-        <View style={s.card}>
-          <View style={[s.row]}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowLabel}>Start Date</Text>
-              <Text style={s.rowValue}>{PLAN_START_DATE.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-            </View>
-          </View>
-          <View style={[s.row]}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowLabel}>Target End Date</Text>
-              <Text style={s.rowValue}>{endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-            </View>
-          </View>
-          <View style={[s.row]}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowLabel}>Phase 1 Duration</Text>
-              <Text style={s.rowValue}>{PHASE1_WEEKS} weeks — Rhythm Builder (1 lecture/session)</Text>
-            </View>
-          </View>
-          <View style={[s.row, s.rowLast]}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowLabel}>Phase 2 Duration</Text>
-              <Text style={s.rowValue}>{PHASE2_WEEKS} weeks — Full Sprint (2 lectures/session)</Text>
-            </View>
-          </View>
-        </View>
+        {/* ── Plan Info ── */}
+        <Text style={[TYPE.label, { color: COLORS.textMuted, marginBottom: 10 }]}>Plan Details</Text>
+        <Card3D variant="default" padding={16} style={{ marginBottom: 14 }}>
+          <InfoRow
+            icon="calendar"
+            label="Plan Start"
+            value={PLAN_START_DATE.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+          />
+          <Divider3D />
+          <InfoRow
+            icon="flag"
+            label="Target Completion"
+            value={endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+          />
+          <Divider3D />
+          <InfoRow
+            icon="layers"
+            label="Phase 1"
+            value={`${PHASE1_WEEKS} weeks — Rhythm Builder (1 lecture/session)`}
+          />
+          <Divider3D />
+          <InfoRow
+            icon="zap"
+            label="Phase 2"
+            value={`${PHASE2_WEEKS} weeks — Full Sprint (2 lectures/session)`}
+          />
+          <Divider3D />
+          <InfoRow
+            icon="refresh-cw"
+            label="Day Types"
+            value="Day A: Physics + Chemistry · Day B: Math + Language"
+          />
+        </Card3D>
 
-        {/* About */}
-        <Text style={s.sectionLabel}>About</Text>
-        <View style={s.card}>
-          <View style={{ padding: 18 }}>
-            <Text style={s.aboutText}>
-              Anurag's Academic Command Center is a 24-week Class 12 PCM study planner covering Physics, Chemistry, Mathematics, English, and Hindi. The schedule alternates between Day A (Physics + Chemistry) and Day B (Math + Language) for systematic coverage.
+        {/* ── Syllabus Summary ── */}
+        <Text style={[TYPE.label, { color: COLORS.textMuted, marginBottom: 10 }]}>Syllabus</Text>
+        <Card3D variant="default" padding={16} style={{ marginBottom: 14 }}>
+          <Text style={[TYPE.body, { color: COLORS.textSecondary, lineHeight: 22, marginBottom: 14 }]}>
+            A 24-week plan covering the full Class 12 syllabus across 5 subjects with systematic A/B day rotation.
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              { label: 'Physics · 15 ch', color: COLORS.physics },
+              { label: 'Chemistry · 11 ch', color: COLORS.chemistry },
+              { label: 'Math · 14 ch', color: COLORS.math },
+              { label: 'English · 4 ch', color: COLORS.english },
+              { label: 'Hindi · 4 ch', color: COLORS.hindi },
+            ].map(b => (
+              <View key={b.label} style={{
+                backgroundColor: b.color + '15',
+                borderRadius: RADIUS.sm, paddingHorizontal: 10, paddingVertical: 5,
+                borderWidth: 1, borderColor: b.color + '35',
+              }}>
+                <Text style={[TYPE.smBold, { color: b.color }]}>{b.label}</Text>
+              </View>
+            ))}
+          </View>
+        </Card3D>
+
+        {/* ── Danger Zone ── */}
+        <Text style={[TYPE.label, { color: COLORS.error + 'aa', marginBottom: 10 }]}>Danger Zone</Text>
+        <LinearGradient
+          colors={['rgba(255,77,109,0.10)', 'rgba(255,77,109,0.04)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: RADIUS.lg, padding: 1,
+            borderWidth: 1, borderColor: COLORS.error + '30',
+            ...(isWeb ? { boxShadow: `0 0 20px ${COLORS.errorGlow}` } : {}) as object,
+          }}
+        >
+          <View style={{ borderRadius: RADIUS.lg - 1, padding: 16 }}>
+            <Text style={[TYPE.bodyMed, { color: COLORS.error, marginBottom: 6 }]}>Reset All Progress</Text>
+            <Text style={[TYPE.sm, { color: COLORS.textMuted, marginBottom: 14, lineHeight: 18 }]}>
+              Permanently clears all lecture counts, task statuses, test records, and your streak. This cannot be undone.
             </Text>
-            <View style={s.badgeRow}>
-              {[
-                { label: '15 chapters', color: '#00d4ff' },
-                { label: '11 chapters', color: '#00e5a0' },
-                { label: '14 chapters', color: '#6c63ff' },
-                { label: '4 chapters', color: '#ffb347' },
-                { label: '4 chapters', color: '#ff6b9d' },
-              ].map((b, i) => (
-                <View key={i} style={[s.badge, { backgroundColor: `${b.color}15` }]}>
-                  <Text style={[s.badgeText, { color: b.color }]}>{b.label}</Text>
-                </View>
-              ))}
-            </View>
+            <Button3D
+              label="Reset Everything"
+              variant="error"
+              icon={<Feather name="trash-2" size={15} color="#fff" />}
+              onPress={handleReset}
+              fullWidth
+            />
           </View>
-        </View>
-
-        {/* Danger Zone */}
-        <Text style={s.sectionLabel}>Data</Text>
-        <TouchableOpacity style={s.dangerBtn} onPress={handleReset}>
-          <Feather name="trash-2" size={16} color="#ef4444" />
-          <Text style={s.dangerText}>Reset All Progress</Text>
-        </TouchableOpacity>
+        </LinearGradient>
       </ScrollView>
     </View>
   );

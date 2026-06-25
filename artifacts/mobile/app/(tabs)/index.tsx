@@ -1,197 +1,182 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+
+import { Card3D, Divider3D, Well3D } from '@/components/ui/Card3D';
+import { MetricWidget, Badge } from '@/components/ui/MetricWidget';
+import { ProgressBar3D } from '@/components/ui/ProgressBar3D';
 import { usePlanner } from '@/context/PlannerContext';
 import { SUBJECTS } from '@/data/plannerData';
-import { useColors } from '@/hooks/useColors';
+import { COLORS, GRADIENTS, RADIUS, SHADOWS, BOX_SHADOW, SPACING, TYPE, SUBJECT_THEME, isWeb } from '@/constants/theme';
+import type { SubjectColorKey } from '@/constants/theme';
 
-function formatDate(d: Date) {
-  return d.toISOString().split('T')[0];
-}
+function formatDate(d: Date) { return d.toISOString().split('T')[0]; }
 
 export default function DashboardScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { state, schedule, getSubjectProgress, getOverallProgress } = usePlanner();
-
   const overall = getOverallProgress();
 
   const todayStr = formatDate(new Date());
   const todaySchedule = useMemo(() => schedule.find(d => d.date === todayStr), [schedule, todayStr]);
 
-  const subjectColors: Record<string, string> = {
-    physics: colors.physics ?? '#00d4ff',
-    chemistry: colors.chemistry ?? '#00e5a0',
-    math: colors.math ?? '#6c63ff',
-    english: colors.english ?? '#ffb347',
-    hindi: colors.hindi ?? '#ff6b9d',
-  };
-
-  const topPadding = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
-  const bottomPadding = Platform.OS === 'web' ? 34 + 84 : 60 + insets.bottom;
-
-  const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    scroll: { flex: 1 },
-    content: { paddingTop: topPadding + 16, paddingHorizontal: 18, paddingBottom: bottomPadding + 16 },
-    header: { marginBottom: 24 },
-    greeting: { fontSize: 13, color: colors.mutedForeground, marginBottom: 2, fontFamily: 'Inter_400Regular' },
-    title: { fontSize: 26, fontWeight: '700' as const, color: colors.foreground, fontFamily: 'Inter_700Bold' },
-    streakBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      backgroundColor: 'rgba(255,180,0,0.12)',
-      borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
-      alignSelf: 'flex-start', marginTop: 8,
-    },
-    streakText: { fontSize: 13, fontWeight: '700' as const, color: '#FFB400', fontFamily: 'Inter_700Bold' },
-    card: { backgroundColor: colors.card, borderRadius: colors.radius, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
-    cardTitle: { fontSize: 12, fontWeight: '600' as const, color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14, fontFamily: 'Inter_600SemiBold' },
-    progressLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-    progressText: { fontSize: 14, color: colors.foreground, fontFamily: 'Inter_500Medium' },
-    progressPct: { fontSize: 14, fontWeight: '700' as const, color: colors.primary, fontFamily: 'Inter_700Bold' },
-    progressTrack: { height: 8, backgroundColor: colors.secondary, borderRadius: 4, overflow: 'hidden' },
-    progressFill: { height: 8, borderRadius: 4 },
-    statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-    statBox: { flex: 1, backgroundColor: colors.secondary, borderRadius: 10, padding: 12, alignItems: 'center' },
-    statVal: { fontSize: 20, fontWeight: '700' as const, color: colors.foreground, fontFamily: 'Inter_700Bold' },
-    statLbl: { fontSize: 11, color: colors.mutedForeground, marginTop: 2, fontFamily: 'Inter_400Regular' },
-    subjectRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-    subjectDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-    subjectName: { flex: 1, fontSize: 13, color: colors.foreground, fontFamily: 'Inter_500Medium' },
-    subjectPct: { fontSize: 13, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
-    subjectTrack: { height: 4, backgroundColor: colors.secondary, borderRadius: 2, overflow: 'hidden', marginTop: 4, marginBottom: 2 },
-    todayCard: { padding: 0, overflow: 'hidden' },
-    todayHeader: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-    todayDate: { fontSize: 11, color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-    todayTitle: { fontSize: 14, fontWeight: '600' as const, color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-    blockRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
-    blockAccent: { width: 3, borderRadius: 2, height: 44, marginTop: 2 },
-    blockInfo: { flex: 1 },
-    blockSubject: { fontSize: 14, fontWeight: '600' as const, color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-    blockTime: { fontSize: 12, color: colors.mutedForeground, marginTop: 2, fontFamily: 'Inter_400Regular' },
-    blockBadge: { fontSize: 11, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, overflow: 'hidden' as const },
-    sundayText: { fontSize: 14, color: colors.mutedForeground, padding: 18, textAlign: 'center' as const, fontFamily: 'Inter_400Regular' },
-    dayTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.secondary, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 },
-    dayTypeText: { fontSize: 10, color: colors.mutedForeground, fontFamily: 'Inter_600SemiBold' },
-  });
+  const topPad = isWeb ? Math.max(insets.top, 67) : insets.top;
+  const botPad = isWeb ? 34 + 84 : 60 + insets.bottom;
 
   const now = new Date();
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
+  const headerShadow = isWeb ? { boxShadow: BOX_SHADOW.card } as object : SHADOWS.card;
+
   return (
-    <View style={s.container}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <View style={s.header}>
-          <Text style={s.greeting}>Good {now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening'}</Text>
-          <Text style={s.title}>Anurag's Planner</Text>
+    <View style={{ flex: 1, backgroundColor: COLORS.void }}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: topPad + 16, paddingHorizontal: 16, paddingBottom: botPad + 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Page Header ── */}
+        <View style={{ marginBottom: 22 }}>
+          <Text style={[TYPE.sm, { color: COLORS.textMuted, marginBottom: 3 }]}>{greeting}</Text>
+          <Text style={[TYPE.h1, { color: COLORS.textPrimary }]}>Command Center</Text>
           {state.streak > 0 && (
-            <View style={s.streakBadge}>
-              <Feather name="zap" size={13} color="#FFB400" />
-              <Text style={s.streakText}>{state.streak} day streak</Text>
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10,
+              alignSelf: 'flex-start',
+              backgroundColor: COLORS.warningGlow,
+              borderRadius: RADIUS.pill,
+              paddingHorizontal: 12, paddingVertical: 5,
+              borderWidth: 1, borderColor: COLORS.warning + '50',
+            }}>
+              <Feather name="zap" size={12} color={COLORS.warning} />
+              <Text style={[TYPE.smBold, { color: COLORS.warning }]}>{state.streak} day streak</Text>
             </View>
           )}
         </View>
 
-        {/* Overall Progress */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Overall Progress</Text>
-          <View style={s.progressLabel}>
-            <Text style={s.progressText}>{overall.done}/{overall.total} lectures</Text>
-            <Text style={s.progressPct}>{overall.pct}%</Text>
+        {/* ── Overall Progress Hero ── */}
+        <Card3D variant="elevated" glowColor={COLORS.mathGlow} style={{ marginBottom: 14 }} padding={20}>
+          <Text style={[TYPE.label, { color: COLORS.textMuted, marginBottom: 14 }]}>Overall Progress</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 16 }}>
+            <Text style={[TYPE.display, { color: COLORS.math, lineHeight: 38 }]}>{overall.pct}%</Text>
+            <Text style={[TYPE.sm, { color: COLORS.textMuted, marginBottom: 4 }]}>
+              {overall.done}/{overall.total} lectures
+            </Text>
           </View>
-          <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: `${overall.pct}%`, backgroundColor: colors.primary }]} />
-          </View>
-          <View style={s.statsRow}>
-            <View style={s.statBox}>
-              <Text style={s.statVal}>{overall.doneCh}</Text>
-              <Text style={s.statLbl}>Chapters Done</Text>
-            </View>
-            <View style={s.statBox}>
-              <Text style={s.statVal}>{overall.totalCh - overall.doneCh}</Text>
-              <Text style={s.statLbl}>Remaining</Text>
-            </View>
-            <View style={s.statBox}>
-              <Text style={s.statVal}>{overall.pct}%</Text>
-              <Text style={s.statLbl}>Complete</Text>
-            </View>
-          </View>
-        </View>
+          <ProgressBar3D value={overall.pct} color={COLORS.math} height={10} />
 
-        {/* Subject Progress */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Subject Breakdown</Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+            <MetricWidget value={overall.doneCh} label="Done" color={COLORS.success} size="sm" />
+            <MetricWidget value={overall.totalCh - overall.doneCh} label="Remaining" color={COLORS.textSecondary} size="sm" />
+            <MetricWidget value={`${overall.pct}%`} label="Complete" color={COLORS.math} glowColor={COLORS.mathGlow} size="sm" />
+          </View>
+        </Card3D>
+
+        {/* ── Subject Breakdown ── */}
+        <Card3D variant="default" style={{ marginBottom: 14 }} padding={20}>
+          <Text style={[TYPE.label, { color: COLORS.textMuted, marginBottom: 16 }]}>Subject Breakdown</Text>
           {SUBJECTS.map((subj, i) => {
             const prog = getSubjectProgress(subj.key);
-            const col = subjectColors[subj.key];
+            const t = SUBJECT_THEME[subj.key as SubjectColorKey];
             return (
               <View key={subj.key}>
-                <View style={s.subjectRow}>
-                  <View style={[s.subjectDot, { backgroundColor: col }]} />
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <Text style={s.subjectName}>{subj.label}</Text>
-                      <Text style={[s.subjectPct, { color: col }]}>{prog.pct}%</Text>
+                <View style={{ marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{
+                        width: 6, height: 6, borderRadius: 3, backgroundColor: t.color,
+                        ...(isWeb ? { boxShadow: `0 0 8px ${t.glow}` } : {}) as object,
+                      }} />
+                      <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary }]}>{subj.label}</Text>
                     </View>
-                    <View style={s.subjectTrack}>
-                      <View style={[s.progressFill, { width: `${prog.pct}%`, backgroundColor: col }]} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={[TYPE.sm, { color: COLORS.textMuted }]}>
+                        {prog.doneChapters}/{prog.totalChapters} ch
+                      </Text>
+                      <Text style={[TYPE.smBold, { color: t.color }]}>{prog.pct}%</Text>
                     </View>
-                    <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 3, fontFamily: 'Inter_400Regular' }}>
-                      {prog.doneLectures}/{prog.totalLectures} lec · {prog.doneChapters}/{prog.totalChapters} ch
-                    </Text>
                   </View>
+                  <ProgressBar3D value={prog.pct} color={t.color} glowColor={t.glow} height={7} />
+                  <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 5 }]}>
+                    {prog.doneLectures} / {prog.totalLectures} lectures
+                  </Text>
                 </View>
-                {i < SUBJECTS.length - 1 && <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12 }} />}
+                {i < SUBJECTS.length - 1 && <Divider3D style={{ marginBottom: 14 }} />}
               </View>
             );
           })}
-        </View>
+        </Card3D>
 
-        {/* Today's Schedule */}
-        <View style={[s.card, s.todayCard]}>
-          <View style={s.todayHeader}>
-            <Text style={s.todayDate}>{dayNames[now.getDay()]}, {now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+        {/* ── Today's Schedule ── */}
+        <Card3D variant="default" padding={0} style={{ overflow: 'hidden' }}>
+          <LinearGradient
+            colors={GRADIENTS.header}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: COLORS.borderSubtle }}
+          >
+            <Text style={[TYPE.sm, { color: COLORS.textMuted }]}>
+              {dayNames[now.getDay()]}, {now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-              <Text style={s.todayTitle}>Today's Schedule</Text>
+              <Text style={[TYPE.h3, { color: COLORS.textPrimary }]}>Today's Schedule</Text>
               {todaySchedule && todaySchedule.dayType !== 'SUNDAY' && (
-                <View style={s.dayTypeBadge}>
-                  <Text style={s.dayTypeText}>
-                    Day {todaySchedule.dayType}
-                    {todaySchedule.isHybridDay ? ' · Hybrid' : ''}
-                    {' · Phase '}{todaySchedule.phase}
-                  </Text>
-                </View>
+                <Badge
+                  label={`Day ${todaySchedule.dayType} · Phase ${todaySchedule.phase}`}
+                  color={COLORS.math}
+                />
               )}
             </View>
-          </View>
+          </LinearGradient>
+
           {!todaySchedule ? (
-            <Text style={s.sundayText}>Outside the plan dates</Text>
+            <View style={{ padding: 20 }}>
+              <Text style={[TYPE.body, { color: COLORS.textMuted, textAlign: 'center' }]}>Outside plan dates</Text>
+            </View>
           ) : todaySchedule.dayType === 'SUNDAY' ? (
-            <Text style={s.sundayText}>Rest day — recharge for the week</Text>
+            <View style={{ padding: 20, alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 28 }}>☀️</Text>
+              <Text style={[TYPE.body, { color: COLORS.textMuted }]}>Rest day — recharge</Text>
+            </View>
           ) : (
-            todaySchedule.blocks.map(block => (
-              <View key={block.id} style={s.blockRow}>
-                <View style={[s.blockAccent, { backgroundColor: subjectColors[block.subject] }]} />
-                <View style={s.blockInfo}>
-                  <Text style={s.blockSubject}>{block.label}</Text>
-                  <Text style={s.blockTime}>{block.timeSlot}</Text>
-                  <Text style={[s.blockTime, { marginTop: 3 }]}>{block.lecturesPlanned} lecture{block.lecturesPlanned > 1 ? 's' : ''} planned</Text>
+            todaySchedule.blocks.map((block, bi) => {
+              const t = SUBJECT_THEME[block.subject as SubjectColorKey];
+              const isLast = bi === todaySchedule.blocks.length - 1;
+              return (
+                <View key={block.id}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+                    <LinearGradient
+                      colors={[t.color, t.dim]}
+                      style={{ width: 3, height: 46, borderRadius: 2 }}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary }]}>{block.label}</Text>
+                      <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 2 }]}>{block.timeSlot}</Text>
+                      <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 1 }]}>
+                        {block.lecturesPlanned} lecture{block.lecturesPlanned > 1 ? 's' : ''} planned
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: t.color + '18',
+                      borderRadius: RADIUS.sm,
+                      paddingHorizontal: 8, paddingVertical: 4,
+                      borderWidth: 1, borderColor: t.color + '35',
+                    }}>
+                      <Text style={[TYPE.xs, { color: t.color }]}>
+                        {block.blockType === 'revision' ? 'REVISION' : block.blockType === 'language' ? 'LANGUAGE' : 'STUDY'}
+                      </Text>
+                    </View>
+                  </View>
+                  {!isLast && <Divider3D style={{ marginHorizontal: 20 }} />}
                 </View>
-                <View style={[s.blockBadge, {
-                  backgroundColor: block.blockType === 'revision' ? 'rgba(255,180,0,0.15)' : block.blockType === 'language' ? 'rgba(255,107,157,0.15)' : `${subjectColors[block.subject]}18`,
-                }]}>
-                  <Text style={[s.blockBadge, {
-                    color: block.blockType === 'revision' ? '#FFB400' : block.blockType === 'language' ? '#ff6b9d' : subjectColors[block.subject],
-                    fontFamily: 'Inter_600SemiBold',
-                  }]}>
-                    {block.blockType === 'revision' ? 'Revision' : block.blockType === 'language' ? 'Language' : 'Study'}
-                  </Text>
-                </View>
-              </View>
-            ))
+              );
+            })
           )}
-        </View>
+        </Card3D>
       </ScrollView>
     </View>
   );

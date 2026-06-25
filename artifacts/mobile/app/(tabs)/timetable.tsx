@@ -1,159 +1,205 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
+import { Card3D, Divider3D } from '@/components/ui/Card3D';
+import { IconButton3D } from '@/components/ui/Button3D';
+import { Badge } from '@/components/ui/MetricWidget';
 import { usePlanner } from '@/context/PlannerContext';
-import { useColors } from '@/hooks/useColors';
-import type { SubjectKey } from '@/data/plannerData';
+import {
+  COLORS, GRADIENTS, RADIUS, SHADOWS, BOX_SHADOW, SPACING, TYPE,
+  SUBJECT_THEME, isWeb,
+} from '@/constants/theme';
+import type { SubjectColorKey } from '@/constants/theme';
 
 function formatDate(d: Date) { return d.toISOString().split('T')[0]; }
 
-const SUBJECT_COLORS: Record<SubjectKey, string> = {
-  physics: '#00d4ff',
-  chemistry: '#00e5a0',
-  math: '#6c63ff',
-  english: '#ffb347',
-  hindi: '#ff6b9d',
+const STATUS_CONFIG = {
+  pending:  { icon: 'circle'   as const, color: COLORS.textDim,   bg: 'rgba(255,255,255,0.04)' },
+  done:     { icon: 'check'    as const, color: COLORS.success,   bg: COLORS.success + '18'   },
+  'not-done': { icon: 'x'     as const, color: COLORS.error,     bg: COLORS.error   + '18'   },
+  partial:  { icon: 'minus'    as const, color: COLORS.warning,   bg: COLORS.warning + '18'   },
+};
+
+const STATUS_CYCLE: Record<string, 'done' | 'not-done' | 'pending'> = {
+  pending: 'done', done: 'not-done', 'not-done': 'pending', partial: 'done',
 };
 
 export default function TimetableScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { schedule, getTask, updateTask } = usePlanner();
 
   const todayStr = formatDate(new Date());
-
-  const currentWeek = useMemo(() => {
-    const day = schedule.find(d => d.date === todayStr);
-    return day?.week ?? 1;
-  }, [schedule, todayStr]);
-
+  const currentWeek = useMemo(() => schedule.find(d => d.date === todayStr)?.week ?? 1, [schedule, todayStr]);
   const [selectedWeek, setSelectedWeek] = useState(currentWeek);
-
   const weekDays = useMemo(() => schedule.filter(d => d.week === selectedWeek), [schedule, selectedWeek]);
 
-  const topPadding = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
-  const bottomPadding = Platform.OS === 'web' ? 34 + 84 : 60 + insets.bottom;
+  const topPad = isWeb ? Math.max(insets.top, 67) : insets.top;
+  const botPad = isWeb ? 34 + 84 : 60 + insets.bottom;
 
-  const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      paddingTop: topPadding + 12,
-      paddingHorizontal: 18,
-      paddingBottom: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.card,
-    },
-    headerTitle: { fontSize: 22, fontWeight: '700' as const, color: colors.foreground, fontFamily: 'Inter_700Bold' },
-    weekNav: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-    weekBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' },
-    weekLabel: { flex: 1, textAlign: 'center' as const, fontSize: 14, fontWeight: '600' as const, color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-    scroll: { flex: 1 },
-    content: { padding: 14, paddingBottom: bottomPadding + 14 },
-    dayCard: { backgroundColor: colors.card, borderRadius: colors.radius, marginBottom: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
-    dayCardToday: { borderColor: colors.primary, borderWidth: 1.5 },
-    dayHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-    dayLabel: { flex: 1, fontSize: 14, fontWeight: '600' as const, color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-    dayDate: { fontSize: 12, color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-    todayBadge: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginRight: 8 },
-    todayBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
-    typeBadge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-    typeBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-    sundayRow: { paddingHorizontal: 16, paddingVertical: 14 },
-    sundayText: { fontSize: 13, color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-    blockRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-    blockLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
-    blockAccent: { width: 3, height: 40, borderRadius: 2 },
-    blockInfo: { flex: 1 },
-    blockSubject: { fontSize: 13, fontWeight: '600' as const, color: colors.foreground, fontFamily: 'Inter_600SemiBold' },
-    blockTime: { fontSize: 11, color: colors.mutedForeground, marginTop: 2, fontFamily: 'Inter_400Regular' },
-    blockLec: { fontSize: 11, color: colors.mutedForeground, marginTop: 1, fontFamily: 'Inter_400Regular' },
-    statusBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  });
-
-  const toggleStatus = (blockId: string, date: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const task = getTask(blockId, date);
-    const next = task.status === 'done' ? 'pending' : task.status === 'pending' ? 'not-done' : 'done';
-    updateTask(blockId, date, { status: next });
-  };
-
-  const statusColor = (status: string) => {
-    if (status === 'done') return '#00e5a0';
-    if (status === 'not-done') return '#ef4444';
-    return colors.border;
-  };
-  const statusIcon = (status: string): 'check' | 'x' | 'circle' => {
-    if (status === 'done') return 'check';
-    if (status === 'not-done') return 'x';
-    return 'circle';
-  };
+  const doneCount   = weekDays.reduce((s, d) => s + d.blocks.filter(b => getTask(b.id, d.date).status === 'done').length, 0);
+  const totalBlocks = weekDays.reduce((s, d) => s + d.blocks.length, 0);
 
   return (
-    <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.headerTitle}>Schedule</Text>
-        <View style={s.weekNav}>
-          <TouchableOpacity style={s.weekBtn} onPress={() => setSelectedWeek(w => Math.max(1, w - 1))} disabled={selectedWeek === 1}>
-            <Feather name="chevron-left" size={18} color={selectedWeek === 1 ? colors.mutedForeground : colors.foreground} />
-          </TouchableOpacity>
-          <Text style={s.weekLabel}>Week {selectedWeek} · Phase {selectedWeek <= 3 ? 1 : 2}</Text>
-          <TouchableOpacity style={s.weekBtn} onPress={() => setSelectedWeek(w => Math.min(24, w + 1))} disabled={selectedWeek === 24}>
-            <Feather name="chevron-right" size={18} color={selectedWeek === 24 ? colors.mutedForeground : colors.foreground} />
-          </TouchableOpacity>
+    <View style={{ flex: 1, backgroundColor: COLORS.void }}>
+      {/* ── Fixed Header ── */}
+      <LinearGradient
+        colors={GRADIENTS.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: topPad + 12,
+          paddingHorizontal: 16,
+          paddingBottom: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.borderSubtle,
+          ...(isWeb ? { boxShadow: BOX_SHADOW.sm } : SHADOWS.sm) as object,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <View>
+            <Text style={[TYPE.h2, { color: COLORS.textPrimary }]}>Schedule</Text>
+            <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 2 }]}>
+              {doneCount}/{totalBlocks} blocks complete this week
+            </Text>
+          </View>
+          <Badge label={`Week ${selectedWeek} · Phase ${selectedWeek <= 3 ? 1 : 2}`} color={COLORS.math} />
         </View>
-      </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        {/* Week navigator */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <IconButton3D
+            icon={<Feather name="chevron-left" size={18} color={selectedWeek === 1 ? COLORS.textDim : COLORS.textPrimary} />}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedWeek(w => Math.max(1, w - 1)); }}
+            disabled={selectedWeek === 1}
+            size={36}
+          />
+          <View style={{ flex: 1 }}>
+            {/* Progress bar for week completion */}
+            <LinearGradient
+              colors={GRADIENTS.trackBg}
+              style={{ height: 4, borderRadius: 2, overflow: 'hidden' }}
+            >
+              <LinearGradient
+                colors={[COLORS.math + 'cc', COLORS.math]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{ height: '100%', width: `${totalBlocks > 0 ? (doneCount / totalBlocks) * 100 : 0}%`, borderRadius: 2 }}
+              />
+            </LinearGradient>
+          </View>
+          <IconButton3D
+            icon={<Feather name="chevron-right" size={18} color={selectedWeek === 24 ? COLORS.textDim : COLORS.textPrimary} />}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedWeek(w => Math.min(24, w + 1)); }}
+            disabled={selectedWeek === 24}
+            size={36}
+          />
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        contentContainerStyle={{ padding: 14, paddingBottom: botPad + 14 }}
+        showsVerticalScrollIndicator={false}
+      >
         {weekDays.map(day => {
           const isToday = day.date === todayStr;
           const isSunday = day.dayType === 'SUNDAY';
+          const glowColor = isToday ? COLORS.mathGlow : undefined;
+
           return (
-            <View key={day.date} style={[s.dayCard, isToday && s.dayCardToday]}>
-              <View style={s.dayHeader}>
-                {isToday && <View style={s.todayBadge}><Text style={s.todayBadgeText}>TODAY</Text></View>}
-                <Text style={s.dayLabel}>{day.dayOfWeek}</Text>
-                <Text style={s.dayDate}>{new Date(day.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-                {!isSunday && (
-                  <View style={[s.typeBadge, { backgroundColor: colors.secondary, marginLeft: 8 }]}>
-                    <Text style={[s.typeBadgeText, { color: colors.mutedForeground }]}>
-                      {day.dayType}{day.isHybridDay ? ' Hybrid' : ''}
-                    </Text>
+            <Card3D
+              key={day.date}
+              variant={isToday ? 'elevated' : 'default'}
+              glowColor={glowColor}
+              padding={0}
+              style={{ marginBottom: 10, overflow: 'hidden' }}
+            >
+              {/* Day header */}
+              <LinearGradient
+                colors={isToday ? [COLORS.math + '22', 'transparent'] : ['transparent', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  flexDirection: 'row', alignItems: 'center',
+                  paddingHorizontal: 16, paddingVertical: 12,
+                  borderBottomWidth: isSunday ? 0 : 1, borderBottomColor: COLORS.borderSubtle,
+                }}
+              >
+                {isToday && (
+                  <View style={{
+                    backgroundColor: COLORS.math, borderRadius: RADIUS.sm,
+                    paddingHorizontal: 6, paddingVertical: 2, marginRight: 8,
+                  }}>
+                    <Text style={[TYPE.xs, { color: '#fff' }]}>TODAY</Text>
                   </View>
                 )}
-              </View>
+                <Text style={[TYPE.bodyMed, { flex: 1, color: isToday ? COLORS.textPrimary : COLORS.textSecondary }]}>
+                  {day.dayOfWeek}
+                </Text>
+                <Text style={[TYPE.sm, { color: COLORS.textMuted, marginRight: 10 }]}>
+                  {new Date(day.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </Text>
+                {!isSunday && (
+                  <Badge
+                    label={`Day ${day.dayType}${day.isHybridDay ? ' · Hybrid' : ''}`}
+                    color={day.dayType === 'A' ? COLORS.physics : COLORS.math}
+                  />
+                )}
+              </LinearGradient>
 
               {isSunday ? (
-                <View style={s.sundayRow}>
-                  <Text style={s.sundayText}>Rest day</Text>
+                <View style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 16 }}>💤</Text>
+                  <Text style={[TYPE.body, { color: COLORS.textMuted }]}>Rest day</Text>
                 </View>
               ) : (
                 day.blocks.map((block, bi) => {
                   const task = getTask(block.id, day.date);
-                  const col = SUBJECT_COLORS[block.subject];
+                  const st = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
+                  const t  = SUBJECT_THEME[block.subject as SubjectColorKey];
+
                   return (
-                    <View key={block.id} style={[s.blockRow, bi === day.blocks.length - 1 && { borderBottomWidth: 0 }]}>
-                      <View style={s.blockLeft}>
-                        <View style={[s.blockAccent, { backgroundColor: col }]} />
-                        <View style={s.blockInfo}>
-                          <Text style={s.blockSubject}>{block.label}</Text>
-                          <Text style={s.blockTime}>{block.timeSlot}</Text>
-                          <Text style={s.blockLec}>{block.lecturesPlanned} lec · {block.blockType}</Text>
+                    <View key={block.id}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
+                        <LinearGradient
+                          colors={[t.color, t.dim]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={{ width: 3, height: 44, borderRadius: 2 }}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[TYPE.bodyMed, { color: COLORS.textPrimary }]}>{block.label}</Text>
+                          <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 2 }]}>{block.timeSlot}</Text>
+                          <Text style={[TYPE.sm, { color: COLORS.textMuted, marginTop: 1 }]}>
+                            {block.lecturesPlanned} lec · {block.blockType}
+                          </Text>
                         </View>
+                        {/* Status toggle button */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            updateTask(block.id, day.date, { status: STATUS_CYCLE[task.status] });
+                          }}
+                          style={{
+                            width: 34, height: 34, borderRadius: 10,
+                            backgroundColor: st.bg,
+                            alignItems: 'center', justifyContent: 'center',
+                            borderWidth: 1, borderColor: st.color + '50',
+                            ...(isWeb ? { boxShadow: `0 0 10px ${st.color}40` } : {}) as object,
+                          }}
+                        >
+                          <Feather name={st.icon} size={15} color={st.color} />
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity
-                        style={[s.statusBtn, { backgroundColor: task.status === 'done' ? 'rgba(0,229,160,0.15)' : task.status === 'not-done' ? 'rgba(239,68,68,0.15)' : colors.secondary }]}
-                        onPress={() => toggleStatus(block.id, day.date)}
-                      >
-                        <Feather name={statusIcon(task.status)} size={14} color={statusColor(task.status)} />
-                      </TouchableOpacity>
+                      {bi < day.blocks.length - 1 && <Divider3D style={{ marginHorizontal: 16 }} />}
                     </View>
                   );
                 })
               )}
-            </View>
+            </Card3D>
           );
         })}
       </ScrollView>
