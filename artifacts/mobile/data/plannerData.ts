@@ -203,10 +203,10 @@ export interface MonthlyTarget {
 }
 
 export const MONTHLY_TARGETS: MonthlyTarget[] = [
-  { month: 'July (Wks 1–2)',        physicsChapters: 1, chemistryChapters: 1, mathChapters: 0, note: 'Phase 1 — Rhythm Builder: Basics + Ch1 start. 1 lecture/session.',                                             phase: '1'     },
-  { month: 'August (Wks 3–6)',      physicsChapters: 2, chemistryChapters: 2, mathChapters: 2, note: 'Phase 1→2 transition. Ch2–Ch3 Physics, Ch2–Ch3 Chem. Pace increases.',                                          phase: '1→2'   },
-  { month: 'September (Wks 7–11)',  physicsChapters: 3, chemistryChapters: 3, mathChapters: 3, note: 'Phase 2 Full Sprint — 2 lectures/session. Ch4–Ch6 Physics, Ch4–Ch6 Chem, Ch3–Ch5 Math.',                        phase: '2'     },
-  { month: 'October (Wks 12–16)',   physicsChapters: 3, chemistryChapters: 3, mathChapters: 3, note: 'Deep execution. Ch7–Ch9 Physics, Ch7–Ch9 Chem, Ch6–Ch8 Math. Friday/Sat Spaced Recall.',                        phase: '2'     },
-  { month: 'November (Wks 17–21)',  physicsChapters: 4, chemistryChapters: 2, mathChapters: 4, note: 'Final push. Ch9B–Ch11B Physics, Ch10 Chem. Ch9–Ch12 Math. Blank-sheet method intensive.',                       phase: '2'     },
-  { month: 'December Wk 1 (Buffer)',physicsChapters: 0, chemistryChapters: 0, mathChapters: 1, note: 'Full Syllabus Completion + Grand Revision. Ch13 Math + Mock Tests.',                                             phase: 'FINAL' },
+  { month: 'June (Wks 1–2)',              physicsChapters: 1, chemistryChapters: 1, mathChapters: 0, note: 'Phase 1 — Rhythm Builder: Basics + Ch1 start. 1 lecture/session. Jun 21 – Jul 4.',                          phase: '1'     },
+  { month: 'July (Wks 3–6)',              physicsChapters: 2, chemistryChapters: 2, mathChapters: 2, note: 'Phase 1→2 transition. Ch2–Ch3 Physics, Ch2–Ch3 Chem. Pace increases. Jul 5 – Aug 1.',                       phase: '1→2'   },
+  { month: 'August (Wks 7–11)',           physicsChapters: 3, chemistryChapters: 3, mathChapters: 3, note: 'Phase 2 Full Sprint — 2 lectures/session. Ch4–Ch6 Physics, Ch4–Ch6 Chem, Ch3–Ch5 Math. Aug 2 – Sep 5.',    phase: '2'     },
+  { month: 'Sep – Oct (Wks 12–16)',       physicsChapters: 3, chemistryChapters: 3, mathChapters: 3, note: 'Deep execution. Ch7–Ch9 Physics, Ch7–Ch9 Chem, Ch6–Ch8 Math. Friday/Sat Spaced Recall. Sep 6 – Oct 10.',   phase: '2'     },
+  { month: 'Oct – Nov (Wks 17–21)',       physicsChapters: 4, chemistryChapters: 2, mathChapters: 4, note: 'Final push. Ch9B–Ch11B Physics, Ch10 Chem. Ch9–Ch12 Math. Blank-sheet method intensive. Oct 11 – Nov 14.', phase: '2'     },
+  { month: 'Nov – Dec Wk 1 (Buffer)',     physicsChapters: 0, chemistryChapters: 0, mathChapters: 1, note: 'Full Syllabus Completion + Grand Revision. Ch13 Math + Mock Tests. Nov 15 – Dec 7.',                        phase: 'FINAL' },
 ];
