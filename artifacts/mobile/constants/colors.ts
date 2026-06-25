@@ -1,0 +1,56 @@
+const colors = {
+  light: {
+    text: "#0a0a0a",
+    tint: "#6c63ff",
+    background: "#ffffff",
+    foreground: "#0a0a0a",
+    card: "#f4f4f8",
+    cardForeground: "#0a0a0a",
+    primary: "#6c63ff",
+    primaryForeground: "#ffffff",
+    secondary: "#f0f0f0",
+    secondaryForeground: "#1a1a1a",
+    muted: "#f0f0f0",
+    mutedForeground: "#737373",
+    accent: "#6c63ff",
+    accentForeground: "#ffffff",
+    destructive: "#ef4444",
+    destructiveForeground: "#ffffff",
+    border: "#e5e5e5",
+    input: "#e5e5e5",
+  },
+
+  dark: {
+    text: "#ffffff",
+    tint: "#6c63ff",
+    background: "#0a0d1a",
+    foreground: "#ffffff",
+    card: "#141728",
+    cardForeground: "#ffffff",
+    primary: "#6c63ff",
+    primaryForeground: "#ffffff",
+    secondary: "#1a1f35",
+    secondaryForeground: "#ffffff",
+    muted: "#1a1f35",
+    mutedForeground: "rgba(255,255,255,0.45)",
+    accent: "#6c63ff",
+    accentForeground: "#ffffff",
+    destructive: "#ef4444",
+    destructiveForeground: "#ffffff",
+    border: "rgba(255,255,255,0.08)",
+    input: "rgba(255,255,255,0.1)",
+
+    physics: "#00d4ff",
+    chemistry: "#00e5a0",
+    math: "#6c63ff",
+    english: "#ffb347",
+    hindi: "#ff6b9d",
+
+    cardElevated: "#1a1f35",
+    surface: "rgba(255,255,255,0.04)",
+  },
+
+  radius: 14,
+};
+
+export default colors;

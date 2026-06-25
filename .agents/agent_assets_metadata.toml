@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "gH04_MpMsYZ_ZiC_zbuJ1"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "academic planner app icon"
